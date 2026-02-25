@@ -1,5 +1,4 @@
 name: android curl compress
-
 on:
   push:
     branches: [ "main" ]
