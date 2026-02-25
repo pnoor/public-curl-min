@@ -84,7 +84,7 @@ jobs:
               no-des \
               no-dsa \
               no-dh \
-              -Os -ffunction-sections -fdata-sections
+              -Os -ffunction-sections -fdata-sections -fPIC
             make -j$(nproc) build_sw
             make install_sw
 
