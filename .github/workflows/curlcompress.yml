@@ -18,14 +18,14 @@ jobs:
     build:
       runs-on: ubuntu-22.04
       strategy:
-        matrix:
-          abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
+          matrix:
+            abi: [arm64-v8a, armeabi-v7a]
 
-      steps:
+        steps:
           - name: Install dependencies
             run: |
               sudo apt-get update -q
-              sudo apt-get install -y cmake autoconf automake libtool pkg-config wget
+              sudo apt-get install -y cmake autoconf automake libtool pkg-config wget python3
 
           - name: Set NDK path
             run: echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
@@ -33,7 +33,7 @@ jobs:
           - name: Download sources
             run: |
               wget -q https://curl.se/download/curl-8.11.0.tar.gz && tar xzf curl-8.11.0.tar.gz
-              wget -q https://www.openssl.org/source/openssl-3.4.0.tar.gz && tar xzf openssl-3.4.0.tar.gz
+              wget -q https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2 && tar xjf mbedtls-3.6.2.tar.bz2
 
           - name: Set toolchain variables
             id: tc
@@ -41,62 +41,41 @@ jobs:
               ABI=${{ matrix.abi }}
               TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
               case $ABI in
-                arm64-v8a)   TARGET="aarch64-linux-android";    SSL_TARGET="android-arm64"   ;;
-                armeabi-v7a) TARGET="armv7a-linux-androideabi"; SSL_TARGET="android-arm"     ;;
-                x86_64)      TARGET="x86_64-linux-android";     SSL_TARGET="android-x86_64" ;;
-                x86)         TARGET="i686-linux-android";       SSL_TARGET="android-x86"    ;;
+                arm64-v8a)   TARGET="aarch64-linux-android"    ;;
+                armeabi-v7a) TARGET="armv7a-linux-androideabi" ;;
               esac
-              echo "TARGET=$TARGET"                       >> $GITHUB_OUTPUT
-              echo "SSL_TARGET=$SSL_TARGET"               >> $GITHUB_OUTPUT
-              echo "TOOLCHAIN=$TOOLCHAIN"                 >> $GITHUB_OUTPUT
-              echo "CC=$TOOLCHAIN/bin/${TARGET}24-clang"  >> $GITHUB_OUTPUT
-              echo "AR=$TOOLCHAIN/bin/llvm-ar"            >> $GITHUB_OUTPUT
-              echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"    >> $GITHUB_OUTPUT
+              echo "TARGET=$TARGET"                         >> $GITHUB_OUTPUT
+              echo "TOOLCHAIN=$TOOLCHAIN"                   >> $GITHUB_OUTPUT
+              echo "CC=$TOOLCHAIN/bin/${TARGET}24-clang"    >> $GITHUB_OUTPUT
+              echo "CXX=$TOOLCHAIN/bin/${TARGET}24-clang++" >> $GITHUB_OUTPUT
+              echo "AR=$TOOLCHAIN/bin/llvm-ar"              >> $GITHUB_OUTPUT
+              echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"      >> $GITHUB_OUTPUT
 
-          - name: Build OpenSSL minimal
+          - name: Build mbedTLS minimal
             run: |
               export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
-              mkdir -p output/openssl/${{ matrix.abi }}
-              cd openssl-3.4.0
-              EXTRA_FLAGS=""
-              if [ "${{ matrix.abi }}" = "armeabi-v7a" ]; then
-                EXTRA_FLAGS="no-asm"
-              fi
-              ./Configure ${{ steps.tc.outputs.SSL_TARGET }} \
-                -D__ANDROID_API__=24 \
-                --prefix=$(pwd)/../output/openssl/${{ matrix.abi }} \
-                no-shared \
-                no-dso \
-                no-engine \
-                no-tests \
-                no-apps \
-                no-legacy \
-                no-weak-ssl-ciphers \
-                no-comp \
-                no-srp \
-                no-gost \
-                no-dgram \
-                no-dtls \
-                no-camellia \
-                no-seed \
-                no-idea \
-                no-bf \
-                no-cast \
-                no-md4 \
-                no-rc2 \
-                no-rc4 \
-                no-des \
-                no-dsa \
-                no-dh \
-                $EXTRA_FLAGS \
-                -Os -ffunction-sections -fdata-sections -fPIC
-              make -j$(nproc) build_sw
-              make install_sw
+              mkdir -p output/mbedtls/${{ matrix.abi }}
+              mkdir -p mbedtls-build-${{ matrix.abi }}
+              cd mbedtls-build-${{ matrix.abi }}
+              cmake ../mbedtls-3.6.2 \
+                -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+                -DANDROID_ABI=${{ matrix.abi }} \
+                -DANDROID_PLATFORM=android-24 \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
+                -DCMAKE_INSTALL_PREFIX=$(pwd)/../output/mbedtls/${{ matrix.abi }} \
+                -DENABLE_TESTING=OFF \
+                -DENABLE_PROGRAMS=OFF \
+                -DUSE_SHARED_MBEDTLS_LIBRARY=OFF \
+                -DUSE_STATIC_MBEDTLS_LIBRARY=ON \
+                -DMBEDTLS_FATAL_WARNINGS=OFF
+              make -j$(nproc)
+              make install
 
           - name: Build libcurl HTTPS only
             run: |
               export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
-              OPENSSL_OUT=$(pwd)/output/openssl/${{ matrix.abi }}
+              MBEDTLS_OUT=$(pwd)/output/mbedtls/${{ matrix.abi }}
               mkdir -p output/curl/${{ matrix.abi }}
               cd curl-8.11.0
               autoreconf -fi
@@ -105,11 +84,11 @@ jobs:
                 CC="${{ steps.tc.outputs.CC }}" \
                 AR="${{ steps.tc.outputs.AR }}" \
                 RANLIB="${{ steps.tc.outputs.RANLIB }}" \
-                CFLAGS="-Os -ffunction-sections -fdata-sections -fvisibility=hidden" \
+                CFLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
                 LDFLAGS="-Wl,--gc-sections" \
                 LIBS="-lz" \
                 --prefix=$(pwd)/../output/curl/${{ matrix.abi }} \
-                --with-openssl="$OPENSSL_OUT" \
+                --with-mbedtls="$MBEDTLS_OUT" \
                 --disable-shared \
                 --enable-static \
                 --enable-http \
@@ -150,8 +129,9 @@ jobs:
             run: |
               echo "=== ${{ matrix.abi }} ==="
               du -h output/curl/${{ matrix.abi }}/lib/libcurl.a
-              du -h output/openssl/${{ matrix.abi }}/lib/libssl.a
-              du -h output/openssl/${{ matrix.abi }}/lib/libcrypto.a
+              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
+              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
+              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
 
           - name: Upload artifact
             uses: actions/upload-artifact@v4
@@ -159,5 +139,6 @@ jobs:
               name: libs-${{ matrix.abi }}
               path: |
                 output/curl/${{ matrix.abi }}/lib/libcurl.a
-                output/openssl/${{ matrix.abi }}/lib/libssl.a
-                output/openssl/${{ matrix.abi }}/lib/libcrypto.a
+                output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
+                output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
+                output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
