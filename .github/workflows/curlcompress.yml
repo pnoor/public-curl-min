@@ -1,4 +1,4 @@
-name: Build Minimal libcurl for Android
+name: Build Minimal libcurl for Android2
 
 on:
   workflow_dispatch:
