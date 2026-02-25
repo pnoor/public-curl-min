@@ -1,144 +1,148 @@
-# This is a basic workflow to help you get started with Actions
-
 name: android curl compress
 
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-    build:
-      runs-on: ubuntu-22.04
-      strategy:
-          matrix:
-            abi: [arm64-v8a, armeabi-v7a]
+  build:
+    runs-on: ubuntu-22.04
 
-        steps:
-          - name: Install dependencies
-            run: |
-              sudo apt-get update -q
-              sudo apt-get install -y cmake autoconf automake libtool pkg-config wget python3
+    strategy:
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a]
 
-          - name: Set NDK path
-            run: echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y cmake autoconf automake libtool pkg-config wget python3
 
-          - name: Download sources
-            run: |
-              wget -q https://curl.se/download/curl-8.11.0.tar.gz && tar xzf curl-8.11.0.tar.gz
-              wget -q https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2 && tar xjf mbedtls-3.6.2.tar.bz2
+      - name: Set NDK path
+        run: echo "ANDROID_NDK_ROOT=$ANDROID_NDK_LATEST_HOME" >> $GITHUB_ENV
 
-          - name: Set toolchain variables
-            id: tc
-            run: |
-              ABI=${{ matrix.abi }}
-              TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
-              case $ABI in
-                arm64-v8a)   TARGET="aarch64-linux-android"    ;;
-                armeabi-v7a) TARGET="armv7a-linux-androideabi" ;;
-              esac
-              echo "TARGET=$TARGET"                         >> $GITHUB_OUTPUT
-              echo "TOOLCHAIN=$TOOLCHAIN"                   >> $GITHUB_OUTPUT
-              echo "CC=$TOOLCHAIN/bin/${TARGET}24-clang"    >> $GITHUB_OUTPUT
-              echo "CXX=$TOOLCHAIN/bin/${TARGET}24-clang++" >> $GITHUB_OUTPUT
-              echo "AR=$TOOLCHAIN/bin/llvm-ar"              >> $GITHUB_OUTPUT
-              echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib"      >> $GITHUB_OUTPUT
+      - name: Download sources
+        run: |
+          wget -q https://curl.se/download/curl-8.11.0.tar.gz
+          tar xzf curl-8.11.0.tar.gz
+          wget -q https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.2/mbedtls-3.6.2.tar.bz2
+          tar xjf mbedtls-3.6.2.tar.bz2
 
-          - name: Build mbedTLS minimal
-            run: |
-              export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
-              mkdir -p output/mbedtls/${{ matrix.abi }}
-              mkdir -p mbedtls-build-${{ matrix.abi }}
-              cd mbedtls-build-${{ matrix.abi }}
-              cmake ../mbedtls-3.6.2 \
-                -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
-                -DANDROID_ABI=${{ matrix.abi }} \
-                -DANDROID_PLATFORM=android-24 \
-                -DCMAKE_BUILD_TYPE=Release \
-                -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
-                -DCMAKE_INSTALL_PREFIX=$(pwd)/../output/mbedtls/${{ matrix.abi }} \
-                -DENABLE_TESTING=OFF \
-                -DENABLE_PROGRAMS=OFF \
-                -DUSE_SHARED_MBEDTLS_LIBRARY=OFF \
-                -DUSE_STATIC_MBEDTLS_LIBRARY=ON \
-                -DMBEDTLS_FATAL_WARNINGS=OFF
-              make -j$(nproc)
-              make install
+      - name: Set toolchain variables
+        id: tc
+        run: |
+          ABI=${{ matrix.abi }}
+          TOOLCHAIN=$ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64
+          case $ABI in
+            arm64-v8a)   TARGET="aarch64-linux-android" ;;
+            armeabi-v7a) TARGET="armv7a-linux-androideabi" ;;
+          esac
 
-          - name: Build libcurl HTTPS only
-            run: |
-              export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
-              MBEDTLS_OUT=$(pwd)/output/mbedtls/${{ matrix.abi }}
-              mkdir -p output/curl/${{ matrix.abi }}
-              cd curl-8.11.0
-              autoreconf -fi
-              ./configure \
-                --host=${{ steps.tc.outputs.TARGET }} \
-                CC="${{ steps.tc.outputs.CC }}" \
-                AR="${{ steps.tc.outputs.AR }}" \
-                RANLIB="${{ steps.tc.outputs.RANLIB }}" \
-                CFLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
-                LDFLAGS="-Wl,--gc-sections" \
-                LIBS="-lz" \
-                --prefix=$(pwd)/../output/curl/${{ matrix.abi }} \
-                --with-mbedtls="$MBEDTLS_OUT" \
-                --disable-shared \
-                --enable-static \
-                --enable-http \
-                --disable-dict \
-                --disable-file \
-                --disable-ftp \
-                --disable-gopher \
-                --disable-imap \
-                --disable-ldap \
-                --disable-ldaps \
-                --disable-mqtt \
-                --disable-pop3 \
-                --disable-rtsp \
-                --disable-smb \
-                --disable-smtp \
-                --disable-telnet \
-                --disable-tftp \
-                --disable-websockets \
-                --disable-manual \
-                --disable-ipv6 \
-                --disable-unix-sockets \
-                --disable-doh \
-                --disable-dateparse \
-                --disable-progress-meter \
-                --disable-netrc \
-                --disable-ntlm \
-                --without-nghttp2 \
-                --without-libidn2 \
-                --without-libpsl \
-                --without-librtmp \
-                --without-brotli \
-                --without-zstd \
-                --with-zlib
-              make -j$(nproc)
-              make install
+          echo "TARGET=$TARGET" >> $GITHUB_OUTPUT
+          echo "TOOLCHAIN=$TOOLCHAIN" >> $GITHUB_OUTPUT
+          echo "CC=$TOOLCHAIN/bin/${TARGET}24-clang" >> $GITHUB_OUTPUT
+          echo "CXX=$TOOLCHAIN/bin/${TARGET}24-clang++" >> $GITHUB_OUTPUT
+          echo "AR=$TOOLCHAIN/bin/llvm-ar" >> $GITHUB_OUTPUT
+          echo "RANLIB=$TOOLCHAIN/bin/llvm-ranlib" >> $GITHUB_OUTPUT
 
-          - name: Show sizes
-            run: |
-              echo "=== ${{ matrix.abi }} ==="
-              du -h output/curl/${{ matrix.abi }}/lib/libcurl.a
-              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
-              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
-              du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
+      - name: Build mbedTLS minimal
+        run: |
+          export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
 
-          - name: Upload artifact
-            uses: actions/upload-artifact@v4
-            with:
-              name: libs-${{ matrix.abi }}
-              path: |
-                output/curl/${{ matrix.abi }}/lib/libcurl.a
-                output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
-                output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
-                output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
+          mkdir -p output/mbedtls/${{ matrix.abi }}
+          mkdir -p mbedtls-build-${{ matrix.abi }}
+          cd mbedtls-build-${{ matrix.abi }}
+
+          cmake ../mbedtls-3.6.2 \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=${{ matrix.abi }} \
+            -DANDROID_PLATFORM=android-24 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
+            -DCMAKE_INSTALL_PREFIX=$(pwd)/../output/mbedtls/${{ matrix.abi }} \
+            -DENABLE_TESTING=OFF \
+            -DENABLE_PROGRAMS=OFF \
+            -DUSE_SHARED_MBEDTLS_LIBRARY=OFF \
+            -DUSE_STATIC_MBEDTLS_LIBRARY=ON \
+            -DMBEDTLS_FATAL_WARNINGS=OFF
+
+          make -j$(nproc)
+          make install
+
+      - name: Build libcurl HTTPS only
+        run: |
+          export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
+
+          MBEDTLS_OUT=$(pwd)/output/mbedtls/${{ matrix.abi }}
+          mkdir -p output/curl/${{ matrix.abi }}
+          cd curl-8.11.0
+
+          autoreconf -fi
+
+          ./configure \
+            --host=${{ steps.tc.outputs.TARGET }} \
+            CC="${{ steps.tc.outputs.CC }}" \
+            AR="${{ steps.tc.outputs.AR }}" \
+            RANLIB="${{ steps.tc.outputs.RANLIB }}" \
+            CFLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -flto=thin" \
+            LDFLAGS="-Wl,--gc-sections" \
+            LIBS="-lz" \
+            --prefix=$(pwd)/../output/curl/${{ matrix.abi }} \
+            --with-mbedtls="$MBEDTLS_OUT" \
+            --disable-shared \
+            --enable-static \
+            --enable-http \
+            --disable-dict \
+            --disable-file \
+            --disable-ftp \
+            --disable-gopher \
+            --disable-imap \
+            --disable-ldap \
+            --disable-ldaps \
+            --disable-mqtt \
+            --disable-pop3 \
+            --disable-rtsp \
+            --disable-smb \
+            --disable-smtp \
+            --disable-telnet \
+            --disable-tftp \
+            --disable-websockets \
+            --disable-manual \
+            --disable-ipv6 \
+            --disable-unix-sockets \
+            --disable-doh \
+            --disable-dateparse \
+            --disable-progress-meter \
+            --disable-netrc \
+            --disable-ntlm \
+            --without-nghttp2 \
+            --without-libidn2 \
+            --without-libpsl \
+            --without-librtmp \
+            --without-brotli \
+            --without-zstd \
+            --with-zlib
+
+          make -j$(nproc)
+          make install
+
+      - name: Show sizes
+        run: |
+          echo "=== ${{ matrix.abi }} ==="
+          du -h output/curl/${{ matrix.abi }}/lib/libcurl.a
+          du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
+          du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
+          du -h output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libs-${{ matrix.abi }}
+          path: |
+            output/curl/${{ matrix.abi }}/lib/libcurl.a
+            output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a
+            output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a
+            output/mbedtls/${{ matrix.abi }}/lib/libmbedx509.a
