@@ -89,6 +89,9 @@
             MBEDTLS_OUT="$(pwd)/output/mbedtls/${{ matrix.abi }}"
             mkdir -p output/curl/${{ matrix.abi }}
             cd curl-8.11.0
+             # Fix: curl uses #ifdef on an always-defined API constant instead of
+            # the actual TLS 1.3 config macro. Replace with proper guard.
+            sed -i 's/#ifdef MBEDTLS_SSL_TLS1_3_SIGNAL_NEW_SESSION_TICKETS_ENABLED/#ifdef MBEDTLS_SSL_PROTO_TLS1_3/' lib/vtls/mbedtls.c
 
             autoreconf -fi
 
