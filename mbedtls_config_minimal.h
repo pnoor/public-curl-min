@@ -30,7 +30,7 @@
 #define MBEDTLS_GCM_C                    /* AES-GCM (modern, preferred) */
 #define MBEDTLS_CCM_C                    /* AES-CCM (some servers use it) */
 #define MBEDTLS_CIPHER_MODE_CBC          /* AES-CBC (legacy compatibility) */
-
+#define MBEDTLS_PK_WRITE_C              /* Public key writing (curl pinned pubkey) */
 /* ARM Crypto Extensions for AES acceleration (ARM64 devices) */
 #define MBEDTLS_AESCE_C
 
