@@ -29,6 +29,7 @@
 #define MBEDTLS_CIPHER_C
 #define MBEDTLS_GCM_C                    /* AES-GCM (modern, preferred) */
 #define MBEDTLS_CIPHER_MODE_CBC          /* AES-CBC (legacy compatibility) */
+#define MBEDTLS_PK_WRITE_C              /* Public key writing (needed by curl mbedTLS backend) */
 /* ARM Crypto Extensions for AES acceleration (ARM64 devices) */
 #define MBEDTLS_AESCE_C
 
@@ -122,7 +123,6 @@
  * │ MBEDTLS_PKCS7_C            — PKCS#7                                   │
  * │ MBEDTLS_PKCS12_C           — PKCS#12                                  │
  * │ MBEDTLS_PEM_WRITE_C        — PEM writing                              │
- * │ MBEDTLS_PK_WRITE_C         — Public key writing (no pinned keys used)  │
  * │ MBEDTLS_CCM_C              — AES-CCM (not needed, GCM/CBC sufficient) │
  * │ MBEDTLS_GENPRIME           — Prime generation (TLS client only)       │
  * │ MBEDTLS_SHA224_C           — SHA-224 (almost never used in TLS)       │
