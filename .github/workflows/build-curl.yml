@@ -73,7 +73,7 @@ jobs:
               -DANDROID_ABI=${{ matrix.abi }} \
               -DANDROID_PLATFORM=android-24 \
               -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden-fno-asynchronous-unwind-tables" \
+              -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables" \
               -DCMAKE_INSTALL_PREFIX=$(pwd)/../output/mbedtls/${{ matrix.abi }} \
               -DENABLE_TESTING=OFF \
               -DENABLE_PROGRAMS=OFF \
