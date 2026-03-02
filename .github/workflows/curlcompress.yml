@@ -61,11 +61,11 @@
         - name: Build mbedTLS minimal
           run: |
             export PATH="${{ steps.tc.outputs.TOOLCHAIN }}/bin:$PATH"
-
+            cp mbedtls_config_minimal.h mbedtls-3.6.2/include/mbedtls/mbedtls_config.h
             mkdir -p output/mbedtls/${{ matrix.abi }}
             mkdir -p mbedtls-build-${{ matrix.abi }}
             cd mbedtls-build-${{ matrix.abi }}
-
+          
             cmake ../mbedtls-3.6.2 \
               -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake \
               -DANDROID_ABI=${{ matrix.abi }} \
@@ -151,7 +151,8 @@
           run: |
             STAGE=staging/${{ matrix.abi }}
             mkdir -p $STAGE/include
-
+            
+            cp -r output/mbedtls/${{ matrix.abi }}/include/psa      $STAGE/include/
             cp output/curl/${{ matrix.abi }}/lib/libcurl.a          $STAGE/
             cp output/mbedtls/${{ matrix.abi }}/lib/libmbedtls.a    $STAGE/
             cp output/mbedtls/${{ matrix.abi }}/lib/libmbedcrypto.a $STAGE/
