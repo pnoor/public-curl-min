@@ -43,8 +43,8 @@
 #define MBEDTLS_PK_C                     /* Public key abstraction */
 #define MBEDTLS_PK_PARSE_C              /* Public key parsing */
 #define MBEDTLS_PKCS1_V15               /* RSA PKCS#1 v1.5 */
+#define MBEDTLS_PK_WRITE_C              /* Public key writing — needed by curl mbedTLS backend */
 /* Removed: MBEDTLS_PKCS1_V21 — OAEP/PSS not needed */
-/* Removed: MBEDTLS_PK_WRITE_C — not needed for TLS client */
 
 /* ── Elliptic curves — P-256 only ──────────────────────────────────────────── */
 #define MBEDTLS_ECP_DP_SECP256R1_ENABLED /* P-256 — most common */
