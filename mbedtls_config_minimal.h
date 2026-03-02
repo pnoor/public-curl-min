@@ -1,7 +1,7 @@
 /**
  * Ultra-minimal mbedTLS config for HTTPS-only curl (no cert verification).
  * SSL_VERIFYPEER=0, SSL_VERIFYHOST=0 — stripped PEM/Base64/SNI/CBC/SHA-384+.
- * TLS 1.2 + TLS 1.3, ECDHE key exchange only, AES-GCM + ChaCha20-Poly1305.
+ * TLS 1.2 only, ECDHE key exchange only, AES-GCM only.
  *
  * Usage in GitHub Actions workflow (CMake):
  *   Copy this file into mbedtls/include/mbedtls/mbedtls_config.h before building.
@@ -15,13 +15,13 @@
 #define MBEDTLS_HAVE_TIME
 #define MBEDTLS_PLATFORM_C
 
-/* ── Cipher suites — AES-GCM + ChaCha20-Poly1305 only ────────────────────── */
+/* ── Cipher suites — AES-GCM only ─────────────────────────────────────────── */
 #define MBEDTLS_AES_C
 #define MBEDTLS_CIPHER_C
 #define MBEDTLS_GCM_C                    /* AES-GCM (modern, preferred) */
-#define MBEDTLS_CHACHAPOLY_C             /* ChaCha20-Poly1305 (TLS 1.3 + modern TLS 1.2) */
-#define MBEDTLS_CHACHA20_C
-#define MBEDTLS_POLY1305_C
+/* Removed: MBEDTLS_CHACHAPOLY_C — AES-GCM is sufficient, saves ~15 KB */
+/* Removed: MBEDTLS_CHACHA20_C */
+/* Removed: MBEDTLS_POLY1305_C */
 /* Removed: MBEDTLS_CIPHER_MODE_CBC — GCM only, no legacy CBC */
 /* Removed: MBEDTLS_CCM_C — not needed, GCM is sufficient */
 #define MBEDTLS_AESCE_C                  /* ARM Crypto Extensions for AES acceleration */
@@ -66,12 +66,12 @@
 /* Removed: MBEDTLS_BASE64_C — only needed by PEM parsing */
 /* Removed: MBEDTLS_X509_RSASSA_PSS_SUPPORT — RSA-PSS rare */
 
-/* ── TLS protocol ──────────────────────────────────────────────────────────── */
+/* ── TLS protocol — TLS 1.2 only ───────────────────────────────────────────── */
 #define MBEDTLS_SSL_CLI_C               /* TLS client only */
 #define MBEDTLS_SSL_TLS_C               /* TLS core */
-#define MBEDTLS_SSL_PROTO_TLS1_2        /* TLS 1.2 */
-#define MBEDTLS_SSL_PROTO_TLS1_3        /* TLS 1.3 (modern servers) */
-#define MBEDTLS_SSL_SESSION_TICKETS     /* Session resumption */
+#define MBEDTLS_SSL_PROTO_TLS1_2        /* TLS 1.2 only */
+/* Removed: MBEDTLS_SSL_PROTO_TLS1_3 — requires HKDF+KEEP_PEER_CERT, large code size */
+/* Removed: MBEDTLS_SSL_SESSION_TICKETS — not needed for simple API calls */
 /* Removed: MBEDTLS_SSL_ENCRYPT_THEN_MAC — CBC extension, no CBC */
 /* Removed: MBEDTLS_SSL_EXTENDED_MASTER_SECRET — MITM mitigation, verification off */
 /* Removed: MBEDTLS_SSL_SERVER_NAME_INDICATION — not needed (VERIFYPEER=0) */
@@ -104,8 +104,11 @@
  * │ MBEDTLS_KEY_EXCHANGE_RSA   — Static RSA (ECDHE only)                  │
  * │ MBEDTLS_PKCS1_V21          — OAEP/PSS (not needed)                    │
  * │ MBEDTLS_ECP_DP_SECP384R1   — P-384 (P-256 only)                      │
+ * │ MBEDTLS_CHACHAPOLY_C       — ChaCha20-Poly1305 (AES-GCM sufficient)   │
+ * │ MBEDTLS_SSL_PROTO_TLS1_3  — TLS 1.3 (requires HKDF, large)          │
  * │ MBEDTLS_SSL_SNI            — SNI (VERIFYPEER=0)                       │
  * │ MBEDTLS_SSL_KEEP_PEER_CERT — Keep peer cert (not verifying)           │
+ * │ MBEDTLS_SSL_SESSION_TICKETS — Not needed for simple API calls         │
  * │ MBEDTLS_NET_C              — Net I/O (curl handles sockets)           │
  * │ MBEDTLS_TIMING_C           — Timing (DTLS only)                       │
  * │ All DTLS, DHM, PSK, DES, CAMELLIA, ARIA, PKCS#5/7/12                 │
