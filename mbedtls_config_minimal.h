@@ -1,4 +1,3 @@
-
 /**
  * Minimal mbedTLS configuration for eSign Mobile API AAR.
  *
@@ -49,7 +48,7 @@
 #define MBEDTLS_RSA_C                    /* RSA signatures + key exchange */
 #define MBEDTLS_ECDH_C                   /* ECDH key exchange */
 #define MBEDTLS_ECDSA_C                  /* ECDSA signatures */
-#define MBEDTLS_ECDSA_DETERMINISTIC      /* Deterministic ECDSA (RFC 6979) */
+/* MBEDTLS_ECDSA_DETERMINISTIC removed — requires HMAC_DRBG_C which we disabled */
 #define MBEDTLS_ECP_C                    /* Elliptic curve core */
 #define MBEDTLS_PK_C                     /* Public key abstraction */
 #define MBEDTLS_PK_PARSE_C              /* Public key parsing */
@@ -156,12 +155,8 @@
  * └─────────────────────────────────────────────────────────────────────────┘
  */
 
-/* ── Include internal config adjustment headers ────────────────────────────── */
-#include "mbedtls/config_adjust_legacy_crypto.h"
-#include "mbedtls/config_adjust_x509.h"
-#include "mbedtls/config_adjust_ssl.h"
-#include "mbedtls/config_adjust_legacy_from_psa.h"
-#include "mbedtls/config_adjust_psa_from_legacy.h"
-#include "mbedtls/config_adjust_psa_superset_legacy.h"
+/* NOTE: Do NOT include config_adjust_*.h here.
+ * mbedTLS 3.x build_info.h includes them automatically after this config.
+ * Including them manually causes "Do not include manually" build errors. */
 
 #endif /* MBEDTLS_CONFIG_MINIMAL_H */
