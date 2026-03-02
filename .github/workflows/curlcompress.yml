@@ -71,7 +71,7 @@
               -DANDROID_ABI=${{ matrix.abi }} \
               -DANDROID_PLATFORM=android-24 \
               -DCMAKE_BUILD_TYPE=Release \
-              -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables" \
+              -DCMAKE_C_FLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti" \
               -DCMAKE_INSTALL_PREFIX=$(pwd)/../output/mbedtls/${{ matrix.abi }} \
               -DENABLE_TESTING=OFF \
               -DENABLE_PROGRAMS=OFF \
@@ -100,7 +100,7 @@
               CC="${{ steps.tc.outputs.CC }}" \
               AR="${{ steps.tc.outputs.AR }}" \
               RANLIB="${{ steps.tc.outputs.RANLIB }}" \
-              CFLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables" \
+              CFLAGS="-Oz -ffunction-sections -fdata-sections -fvisibility=hidden -fno-asynchronous-unwind-tables -fno-exceptions -fno-rtti" \
               LDFLAGS="-Wl,--gc-sections" \
               LIBS="-lz" \
               --prefix=$(pwd)/../output/curl/${{ matrix.abi }} \
@@ -131,6 +131,9 @@
               --disable-progress-meter \
               --disable-netrc \
               --disable-ntlm \
+              --disable-cookies \
+              --disable-proxy \
+              --disable-verbose \
               --without-nghttp2 \
               --without-libidn2 \
               --without-libpsl \

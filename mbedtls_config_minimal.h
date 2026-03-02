@@ -28,16 +28,13 @@
 #define MBEDTLS_AES_C
 #define MBEDTLS_CIPHER_C
 #define MBEDTLS_GCM_C                    /* AES-GCM (modern, preferred) */
-#define MBEDTLS_CCM_C                    /* AES-CCM (some servers use it) */
 #define MBEDTLS_CIPHER_MODE_CBC          /* AES-CBC (legacy compatibility) */
-#define MBEDTLS_PK_WRITE_C              /* Public key writing (curl pinned pubkey) */
 /* ARM Crypto Extensions for AES acceleration (ARM64 devices) */
 #define MBEDTLS_AESCE_C
 
 /* ── Hashing ───────────────────────────────────────────────────────────────── */
 #define MBEDTLS_MD_C                     /* HMAC abstraction — used by Utils.cpp */
 #define MBEDTLS_SHA1_C                   /* SHA-1 — required by TLS 1.2 handshake */
-#define MBEDTLS_SHA224_C                 /* SHA-224 — compiled with SHA-256 */
 #define MBEDTLS_SHA256_C                 /* SHA-256 — used by Utils.cpp + TLS */
 #define MBEDTLS_SHA384_C                 /* SHA-384 — some servers require it */
 #define MBEDTLS_SHA512_C                 /* SHA-512 — dependency of SHA-384 */
@@ -54,7 +51,7 @@
 #define MBEDTLS_PK_PARSE_C              /* Public key parsing */
 #define MBEDTLS_PKCS1_V15               /* RSA PKCS#1 v1.5 */
 #define MBEDTLS_PKCS1_V21               /* RSA PKCS#1 v2.1 (OAEP/PSS) */
-#define MBEDTLS_GENPRIME                 /* Prime generation (RSA) */
+/* MBEDTLS_GENPRIME removed — not needed for TLS client (no key generation) */
 
 /* ── Elliptic curves — only common ones ────────────────────────────────────── */
 #define MBEDTLS_ECP_DP_SECP256R1_ENABLED /* P-256 — most common */
@@ -95,8 +92,7 @@
 /* ── Error handling ────────────────────────────────────────────────────────── */
 #define MBEDTLS_ERROR_STRERROR_DUMMY    /* Stub error strings (saves space) */
 
-/* ── NET I/O (curl handles its own, but mbedTLS may need it) ───────────────── */
-#define MBEDTLS_NET_C
+/* MBEDTLS_NET_C removed — curl handles its own socket I/O */
 
 /*
  * ┌─────────────────────────────────────────────────────────────────────────┐
@@ -126,7 +122,11 @@
  * │ MBEDTLS_PKCS7_C            — PKCS#7                                   │
  * │ MBEDTLS_PKCS12_C           — PKCS#12                                  │
  * │ MBEDTLS_PEM_WRITE_C        — PEM writing                              │
- * │ MBEDTLS_PK_WRITE_C         — Public key writing                       │
+ * │ MBEDTLS_PK_WRITE_C         — Public key writing (no pinned keys used)  │
+ * │ MBEDTLS_CCM_C              — AES-CCM (not needed, GCM/CBC sufficient) │
+ * │ MBEDTLS_GENPRIME           — Prime generation (TLS client only)       │
+ * │ MBEDTLS_SHA224_C           — SHA-224 (almost never used in TLS)       │
+ * │ MBEDTLS_NET_C              — Net I/O (curl handles its own sockets)   │
  * │ MBEDTLS_X509_CRL_PARSE_C   — CRL parsing                              │
  * │ MBEDTLS_X509_CSR_PARSE_C   — CSR parsing                              │
  * │ MBEDTLS_X509_CREATE_C      — X.509 creation                           │
