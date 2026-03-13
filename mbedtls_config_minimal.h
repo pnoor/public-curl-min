@@ -1,6 +1,6 @@
 /**
  * Ultra-minimal mbedTLS config for HTTPS-only curl (no cert verification).
- * SSL_VERIFYPEER=0, SSL_VERIFYHOST=0 — stripped PEM/Base64/SNI/CBC/SHA-384+.
+ * SSL_VERIFYPEER=0, SSL_VERIFYHOST=0 — stripped PEM/Base64/CBC/SHA-384+.
  * TLS 1.2 only, ECDHE key exchange only, AES-GCM only.
  *
  * Usage in GitHub Actions workflow (CMake):
@@ -74,7 +74,7 @@
 /* Removed: MBEDTLS_SSL_SESSION_TICKETS — not needed for simple API calls */
 /* Removed: MBEDTLS_SSL_ENCRYPT_THEN_MAC — CBC extension, no CBC */
 /* Removed: MBEDTLS_SSL_EXTENDED_MASTER_SECRET — MITM mitigation, verification off */
-/* Removed: MBEDTLS_SSL_SERVER_NAME_INDICATION — not needed (VERIFYPEER=0) */
+#define MBEDTLS_SSL_SERVER_NAME_INDICATION  /* SNI — required by servers that need hostname in TLS handshake */
 /* Removed: MBEDTLS_SSL_KEEP_PEER_CERTIFICATE — not verifying certs */
 /* Removed: MBEDTLS_SSL_MAX_FRAGMENT_LENGTH — rarely used */
 
@@ -106,7 +106,7 @@
  * │ MBEDTLS_ECP_DP_SECP384R1   — P-384 (P-256 only)                      │
  * │ MBEDTLS_CHACHAPOLY_C       — ChaCha20-Poly1305 (AES-GCM sufficient)   │
  * │ MBEDTLS_SSL_PROTO_TLS1_3  — TLS 1.3 (requires HKDF, large)          │
- * │ MBEDTLS_SSL_SNI            — SNI (VERIFYPEER=0)                       │
+ * │ MBEDTLS_SSL_SNI            — (NOW ENABLED — servers require it)        │
  * │ MBEDTLS_SSL_KEEP_PEER_CERT — Keep peer cert (not verifying)           │
  * │ MBEDTLS_SSL_SESSION_TICKETS — Not needed for simple API calls         │
  * │ MBEDTLS_NET_C              — Net I/O (curl handles sockets)           │
